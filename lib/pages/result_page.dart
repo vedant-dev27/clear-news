@@ -9,398 +9,465 @@ class ResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Analysis Result'),
-        backgroundColor: theme.colorScheme.primary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: _ResultView(result: result),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultView extends StatelessWidget {
-  final AnalysisResult result;
-  const _ResultView({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    String _formatDate(DateTime? d) {
-      if (d == null) return 'Unknown';
-      // Simple yyyy-mm-dd hh:mm without intl
-      final y = d.year.toString().padLeft(4, '0');
-      final m = d.month.toString().padLeft(2, '0');
-      final da = d.day.toString().padLeft(2, '0');
-      final hh = d.hour.toString().padLeft(2, '0');
-      final mm = d.minute.toString().padLeft(2, '0');
-      return '$y-$m-$da $hh:$mm';
-    }
-
-    int _pctFromSentiment(double s) {
-      final clamped = s.clamp(-1.0, 1.0);
-      return (((clamped + 1) / 2) * 100).round();
-    }
-
-    Widget _sectionTitle(String t) => Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(t, style: theme.textTheme.titleLarge),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // -------- Article Details --------
-        _sectionTitle('Article Details'),
-        _InfoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(result.title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 12,
-                runSpacing: 4,
-                children: [
-                  _SmallMeta(
-                    'Author',
-                    result.author.isEmpty ? 'Unknown' : result.author,
-                  ),
-                  _SmallMeta('Published', _formatDate(result.publishedDate)),
-                  _SmallMeta(
-                    'Word Count',
-                    result.wordCount > 0 ? '${result.wordCount}' : 'Unknown',
-                  ),
-                  _SmallMeta('Style Used', result.styleUsed),
-                  _SmallMeta('Readability', result.readability),
-                  _SmallMeta('Analyzed', _formatDate(result.analyzedAt)),
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.secondary,
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
 
-        // -------- Summary --------
-        _sectionTitle('Summary'),
-        _InfoCard(
-          child: Text(result.summary, style: theme.textTheme.bodyLarge),
-        ),
-        const SizedBox(height: 16),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
 
-        // -------- Reliability --------
-        _sectionTitle('Reliability Score'),
-        _InfoCard(
-          child: Center(
-            child: Column(
-              children: [
-                SizedBox(
-                  width: 110,
-                  height: 110,
-                  child: Stack(
-                    fit: StackFit.expand,
+                  // Title bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircularProgressIndicator(
-                        value: (result.reliabilityScore.clamp(0, 100)) / 100,
-                        strokeWidth: 8,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          result.reliabilityScore >= 70
-                              ? Colors.green
-                              : (result.reliabilityScore >= 40
-                                    ? Colors.orange
-                                    : Colors.red),
+                      const Text(
+                        "Analysis Result",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      Center(
-                        child: Text('${result.reliabilityScore.round()}%'),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  result.reliabilityScore >= 70
-                      ? 'High Reliability'
-                      : result.reliabilityScore >= 40
-                      ? 'Moderate Reliability'
-                      : 'Low Reliability',
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
 
-        // -------- Bias Indicators --------
-        _sectionTitle('Bias Indicators'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _MetricChip(
-              label: 'Sentiment',
-              value: _pctFromSentiment(result.sentimentScore),
-            ),
-            _MetricChip(
-              label: 'Subjectivity',
-              value: (result.subjectivity * 100).clamp(0, 100).round(),
-            ),
-            _LabelChip(label: 'Leaning: ${result.leaning}'),
-          ],
-        ),
-        if (result.flags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _InfoCard(
-            color: Colors.amber.withOpacity(0.08),
-            borderColor: Colors.amber.shade200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.flag_outlined, color: Colors.amber),
-                    SizedBox(width: 6),
-                    Text('Potential bias cues'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...result.flags.map(
-                  (f) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.circle, size: 6),
-                        const SizedBox(width: 6),
-                        Expanded(child: Text(f)),
-                      ],
+                  const SizedBox(height: 14),
+
+                  // Content scroll view
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _ResultCard(child: _ArticleDetails(result: result)),
+                          _ResultCard(child: _Summary(result: result)),
+                          _ResultCard(child: _Reliability(result: result)),
+                          _ResultCard(child: _BiasIndicators(result: result)),
+                          if (result.emotions.isNotEmpty)
+                            _ResultCard(child: _Emotions(result: result)),
+                          if (result.keywords.isNotEmpty)
+                            _ResultCard(child: _Keywords(result: result)),
+                          _ResultCard(child: _FactVerdict(result: result)),
+                          if (result.comparisons.isNotEmpty)
+                            _ResultCard(child: _Comparisons(result: result)),
+                          _ResultCard(child: _FinalVerdict(result: result)),
+                          const SizedBox(height: 30),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
-        const SizedBox(height: 16),
-
-        // -------- Emotions --------
-        if (result.emotions.isNotEmpty) ...[
-          _sectionTitle('Emotion Signals'),
-          _InfoCard(
-            child: Column(
-              children: [
-                _EmotionBar(label: 'Joy', value: result.emotions['joy'] ?? 0),
-                _EmotionBar(
-                  label: 'Trust',
-                  value: result.emotions['trust'] ?? 0,
-                ),
-                _EmotionBar(
-                  label: 'Anger',
-                  value: result.emotions['anger'] ?? 0,
-                ),
-                _EmotionBar(label: 'Fear', value: result.emotions['fear'] ?? 0),
-                _EmotionBar(
-                  label: 'Sadness',
-                  value: result.emotions['sadness'] ?? 0,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        // -------- Keywords --------
-        if (result.keywords.isNotEmpty) ...[
-          _sectionTitle('Top Keywords'),
-          _InfoCard(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: result.keywords
-                  .map(
-                    (k) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.blueGrey.shade100),
-                      ),
-                      child: Text(k),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        // -------- Fact Check Verdict --------
-        _sectionTitle('Fact-check Verdict'),
-        _InfoCard(
-          color: _verdictColor(result.factCheckVerdict).withOpacity(0.07),
-          borderColor: _verdictColor(result.factCheckVerdict).withOpacity(0.4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.verified,
-                color: _verdictColor(result.factCheckVerdict),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      result.factCheckVerdict,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _verdictHint(result.factCheckVerdict),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // -------- Source Comparisons --------
-        if (result.comparisons.isNotEmpty) ...[
-          _sectionTitle('How other outlets framed it'),
-          Column(
-            children: result.comparisons
-                .map((c) => _ComparisonTile(c))
-                .toList(),
-          ),
-        ],
-
-        const SizedBox(height: 16),
-
-        // -------- Final Verdict --------
-        _InfoCard(
-          color: Colors.blue.withOpacity(0.05),
-          borderColor: Colors.blue.shade100,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'AI’s Final Verdict',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                result.reliabilityScore >= 70
-                    ? 'This article seems well-balanced and reliable, with minor signs of bias.'
-                    : result.reliabilityScore >= 40
-                    ? 'This article contains noticeable bias and should be cross-checked.'
-                    : 'This article shows strong bias and low reliability. Treat with caution.',
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-Color _verdictColor(String verdict) {
-  final v = verdict.toLowerCase();
-  if (v.contains('verified') || v.contains('true')) return Colors.green;
-  if (v.contains('mixed') || v.contains('partial')) return Colors.orange;
-  if (v.contains('needs') || v.contains('unverified') || v.contains('false'))
-    return Colors.red;
-  return Colors.blueGrey;
-}
-
-String _verdictHint(String verdict) {
-  final v = verdict.toLowerCase();
-  if (v.contains('verified') || v.contains('true')) {
-    return 'Key factual claims appear supported by available evidence.';
-  } else if (v.contains('mixed') || v.contains('partial')) {
-    return 'Some claims are accurate, others are disputed or missing context.';
-  } else if (v.contains('needs') ||
-      v.contains('unverified') ||
-      v.contains('false')) {
-    return 'Important claims are unverified. Cross-check with reliable sources.';
-  }
-  return 'No explicit verdict provided. Consider cross-checking key claims.';
-}
-
-class _InfoCard extends StatelessWidget {
+// ------------------- MODERN CARD -------------------
+class _ResultCard extends StatelessWidget {
   final Widget child;
-  final Color? color;
-  final Color? borderColor;
-  const _InfoCard({required this.child, this.color, this.borderColor});
+  const _ResultCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color ?? Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor ?? Colors.grey.shade200),
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(2, 4),
+          ),
+        ],
       ),
       child: child,
     );
   }
 }
 
-class _SmallMeta extends StatelessWidget {
-  final String label;
-  final String value;
-  const _SmallMeta(this.label, this.value, {super.key});
+// ------------------- ARTICLE DETAILS -------------------
+class _ArticleDetails extends StatelessWidget {
+  final AnalysisResult result;
+  const _ArticleDetails({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$label: ',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+        _SectionTitle(icon: Icons.article, title: "Article Details"),
+        const SizedBox(height: 6),
+        Text(result.title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: [
+            _MetaChip(
+              label: "Author",
+              value: result.author.isEmpty ? "Unknown" : result.author,
+            ),
+            _MetaChip(label: "Word Count", value: result.wordCount.toString()),
+            _MetaChip(label: "Style", value: result.styleUsed),
+            _MetaChip(label: "Readability", value: result.readability),
+          ],
         ),
-        Text(value, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
 }
 
-class _MetricChip extends StatelessWidget {
-  final String label;
-  final int value; // 0..100
-  const _MetricChip({required this.label, required this.value});
+// ------------------- SUMMARY -------------------
+class _Summary extends StatelessWidget {
+  final AnalysisResult result;
+  const _Summary({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.summarize, title: "Summary"),
+        const SizedBox(height: 6),
+        Text(result.summary, style: Theme.of(context).textTheme.bodyLarge),
+      ],
+    );
+  }
+}
+
+// ------------------- RELIABILITY -------------------
+class _Reliability extends StatelessWidget {
+  final AnalysisResult result;
+  const _Reliability({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _SectionTitle(icon: Icons.verified, title: "Reliability"),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: 120,
+          height: 120,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CircularProgressIndicator(
+                value: (result.reliabilityScore / 100).clamp(0, 1),
+                strokeWidth: 9,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  result.reliabilityScore >= 70
+                      ? Colors.green
+                      : result.reliabilityScore >= 40
+                      ? Colors.orange
+                      : Colors.red,
+                ),
+              ),
+              Center(
+                child: Text(
+                  "${result.reliabilityScore.round()}%",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          result.reliabilityScore >= 70
+              ? "High Reliability"
+              : result.reliabilityScore >= 40
+              ? "Moderate Reliability"
+              : "Low Reliability",
+        ),
+      ],
+    );
+  }
+}
+
+// ------------------- BIAS INDICATORS -------------------
+class _BiasIndicators extends StatelessWidget {
+  final AnalysisResult result;
+  const _BiasIndicators({required this.result});
+
+  int pctFromSentiment(double s) =>
+      (((s.clamp(-1.0, 1.0) + 1) / 2) * 100).round();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.flag, title: "Bias Indicators"),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            _Metric(
+              label: "Sentiment",
+              value: pctFromSentiment(result.sentimentScore),
+            ),
+            _Metric(
+              label: "Subjectivity",
+              value: (result.subjectivity * 100).round(),
+            ),
+            _Chip(label: "Leaning: ${result.leaning}"),
+          ],
+        ),
+        if (result.flags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...result.flags
+              .map(
+                (f) =>
+                    Text("⚠️ $f", style: const TextStyle(color: Colors.orange)),
+              )
+              .toList(),
+        ],
+      ],
+    );
+  }
+}
+
+// ------------------- EMOTIONS -------------------
+class _Emotions extends StatelessWidget {
+  final AnalysisResult result;
+  const _Emotions({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.mood, title: "Emotion Signals"),
+        const SizedBox(height: 8),
+        ...result.emotions.entries
+            .map((e) => _EmotionBar(label: e.key, value: e.value))
+            .toList(),
+      ],
+    );
+  }
+}
+
+// ------------------- KEYWORDS -------------------
+class _Keywords extends StatelessWidget {
+  final AnalysisResult result;
+  const _Keywords({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.key, title: "Top Keywords"),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 10,
+          children: result.keywords
+              .map(
+                (k) => Chip(
+                  label: Text(k),
+                  backgroundColor: Colors.blueGrey.withOpacity(0.1),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+// ------------------- FACT VERDICT -------------------
+class _FactVerdict extends StatelessWidget {
+  final AnalysisResult result;
+  const _FactVerdict({required this.result});
+
+  Color verdictColor(String v) {
+    final lc = v.toLowerCase();
+    if (lc.contains("verified") || lc.contains("true")) return Colors.green;
+    if (lc.contains("mixed") || lc.contains("partial")) return Colors.orange;
+    if (lc.contains("false") || lc.contains("unverified")) return Colors.red;
+    return Colors.blueGrey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = verdictColor(result.factCheckVerdict);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.verified, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                result.factCheckVerdict,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text("See supporting evidence for factual verification."),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ------------------- COMPARISONS -------------------
+class _Comparisons extends StatelessWidget {
+  final AnalysisResult result;
+  const _Comparisons({required this.result});
+
+  int toPct(double s) => (((s.clamp(-1.0, 1.0) + 1) / 2) * 100).round();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.public, title: "Other Outlets"),
+        const SizedBox(height: 10),
+        ...result.comparisons.map(
+          (c) => Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.source, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text("Headline tone: ${c.headlineTone}"),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(child: Text("Sentiment")),
+                    _Gauge(value: toPct(c.sentiment)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(child: Text("Subjectivity")),
+                    _Gauge(value: (c.subjectivity * 100).round()),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ------------------- FINAL VERDICT -------------------
+class _FinalVerdict extends StatelessWidget {
+  final AnalysisResult result;
+  const _FinalVerdict({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    String text = result.reliabilityScore >= 70
+        ? "This article seems well-balanced and reliable, with minor signs of bias."
+        : result.reliabilityScore >= 40
+        ? "This article contains noticeable bias and should be cross-checked."
+        : "This article shows strong bias and low reliability. Treat with caution.";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.gavel, title: "AI’s Final Verdict"),
+        const SizedBox(height: 6),
+        Text(text),
+      ],
+    );
+  }
+}
+
+// ------------------- REUSABLE WIDGETS -------------------
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  const _SectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final String label;
+  final String value;
+  const _MetaChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text("$label: $value"),
+      backgroundColor: Colors.blueGrey.withOpacity(0.1),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String label;
+  final int value;
+  const _Metric({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: theme.textTheme.bodyMedium),
-          const SizedBox(width: 8),
+          Text(label),
+          const SizedBox(width: 6),
           _Gauge(value: value),
         ],
       ),
@@ -408,58 +475,41 @@ class _MetricChip extends StatelessWidget {
   }
 }
 
-class _LabelChip extends StatelessWidget {
+class _Chip extends StatelessWidget {
   final String label;
-  const _LabelChip({required this.label});
+  const _Chip({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.blueGrey.shade100),
-      ),
-      child: Text(label),
+    return Chip(
+      label: Text(label),
+      backgroundColor: Colors.blueGrey.withOpacity(0.1),
     );
   }
 }
 
 class _Gauge extends StatelessWidget {
-  final int value; // 0..100
+  final int value;
   const _Gauge({required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 100,
-      height: 10,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8),
-            ),
+    return Container(
+      width: 60,
+      height: 8,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: (value / 100).clamp(0.0, 1.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(8),
           ),
-          FractionallySizedBox(
-            widthFactor: (value / 100).clamp(0.0, 1.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Text('$value%', style: const TextStyle(fontSize: 10)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -467,99 +517,38 @@ class _Gauge extends StatelessWidget {
 
 class _EmotionBar extends StatelessWidget {
   final String label;
-  final double value; // 0..1
+  final double value;
   const _EmotionBar({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final pct = (value.clamp(0, 1) * 100).round();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text(label)),
+          SizedBox(width: 70, child: Text(label)),
           Expanded(
             child: Container(
-              height: 10,
+              height: 8,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Align(
+              child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: (pct / 100).clamp(0.0, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                widthFactor: pct / 100,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          SizedBox(width: 36, child: Text('$pct%', textAlign: TextAlign.right)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ComparisonTile extends StatelessWidget {
-  final SourceComparison c;
-  const _ComparisonTile(this.c);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    int _toPct(double score) =>
-        (((score.clamp(-1.0, 1.0) + 1) / 2) * 100).round();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.public, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(c.source, style: theme.textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'Headline tone: ${c.headlineTone}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                children: [
-                  const Text('Sentiment '),
-                  _Gauge(value: _toPct(c.sentiment)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Text('Subjectivity '),
-                  _Gauge(value: (c.subjectivity * 100).round()),
-                ],
-              ),
-            ],
-          ),
+          const SizedBox(width: 6),
+          Text("$pct%"),
         ],
       ),
     );

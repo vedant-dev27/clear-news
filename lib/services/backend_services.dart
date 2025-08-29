@@ -98,10 +98,10 @@ Article: $text
       final parsed = jsonDecode(cleaned) as Map<String, dynamic>;
 
       // Safe extract helpers
-      double _numToDouble(dynamic v, [double def = 0]) =>
+      double numToDouble(dynamic v, [double def = 0]) =>
           (v is num) ? v.toDouble() : def;
 
-      DateTime? _tryParseDate(String? s) {
+      DateTime? tryParseDate(String? s) {
         if (s == null || s.trim().isEmpty) return null;
         try {
           return DateTime.parse(s).toLocal();
@@ -110,7 +110,7 @@ Article: $text
         }
       }
 
-      int _toInt(dynamic v) {
+      int toInt(dynamic v) {
         if (v is int) return v;
         if (v is double) return v.round();
         if (v is String) {
@@ -125,37 +125,37 @@ Article: $text
         final m = (c as Map?) ?? const {};
         return SourceComparison(
           source: (m['source'] ?? 'Unknown').toString(),
-          sentiment: _numToDouble(m['sentiment'], 0.0),
-          subjectivity: _numToDouble(m['subjectivity'], 0.0),
+          sentiment: numToDouble(m['sentiment'], 0.0),
+          subjectivity: numToDouble(m['subjectivity'], 0.0),
           headlineTone: (m['headlineTone'] ?? 'Neutral').toString(),
         );
       }).toList();
 
       final emotionsRaw = (parsed['emotions'] as Map?) ?? const {};
       final emotions = <String, double>{
-        'anger': _numToDouble(emotionsRaw['anger'], 0.0),
-        'joy': _numToDouble(emotionsRaw['joy'], 0.0),
-        'fear': _numToDouble(emotionsRaw['fear'], 0.0),
-        'sadness': _numToDouble(emotionsRaw['sadness'], 0.0),
-        'trust': _numToDouble(emotionsRaw['trust'], 0.0),
+        'anger': numToDouble(emotionsRaw['anger'], 0.0),
+        'joy': numToDouble(emotionsRaw['joy'], 0.0),
+        'fear': numToDouble(emotionsRaw['fear'], 0.0),
+        'sadness': numToDouble(emotionsRaw['sadness'], 0.0),
+        'trust': numToDouble(emotionsRaw['trust'], 0.0),
       };
 
       return AnalysisResult(
         // metadata
         title: (parsed['title'] ?? 'Untitled').toString(),
         author: (parsed['author'] ?? 'Unknown').toString(),
-        publishedDate: _tryParseDate(parsed['publishedDate']?.toString()),
-        wordCount: _toInt(parsed['wordCount']),
+        publishedDate: tryParseDate(parsed['publishedDate']?.toString()),
+        wordCount: toInt(parsed['wordCount']),
 
         // core
         summary: (parsed['summary'] ?? 'No summary generated.').toString(),
         styleUsed: (parsed['styleUsed'] ?? tone).toString(),
 
         // bias
-        sentimentScore: _numToDouble(parsed['sentimentScore'], 0.0),
-        subjectivity: _numToDouble(parsed['subjectivity'], 0.0),
+        sentimentScore: numToDouble(parsed['sentimentScore'], 0.0),
+        subjectivity: numToDouble(parsed['subjectivity'], 0.0),
         leaning: (parsed['leaning'] ?? 'Unknown').toString(),
-        reliabilityScore: _numToDouble(parsed['reliabilityScore'], 50.0),
+        reliabilityScore: numToDouble(parsed['reliabilityScore'], 50.0),
 
         // extra
         readability: (parsed['readability'] ?? 'Unknown').toString(),
@@ -167,7 +167,7 @@ Article: $text
             .toString(),
         writingStyle: (parsed['writingStyle'] ?? 'Not specified').toString(),
         analyzedAt:
-            _tryParseDate(parsed['analyzedAt']?.toString()) ?? DateTime.now(),
+            tryParseDate(parsed['analyzedAt']?.toString()) ?? DateTime.now(),
 
         // comparisons/flags
         comparisons: comparisons,

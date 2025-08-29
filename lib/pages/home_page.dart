@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 20),
 
               const Text(
-                "📰 News Summarizer",
+                "Clear News",
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
